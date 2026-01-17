@@ -1,61 +1,29 @@
-#!/bin/bash
-#SBATCH --time=12:00:00
-#SBATCH --job-name=generate_candidates
-#SBATCH --output ../../jobs/%j.out
-#SBATCH --gres=gpu:a6000:1
-#SBATCH --qos=normal
-#SBATCH -n 1
-
-
 # <===================== Generation for mixed using multiple models =====================>
-dataset="mixinstruct_v2"
-set="val"
-prompt_max_length=256
-output_max_length=256
+# 1. 定义选择的 6 个 SLM
+models=(
+    "deepseek-ai/deepseek-llm-7b-chat"
+    "tiiuae/Falcon3-10B-Instruct"
+    "meta-llama/Llama-3.1-8B-Instruct"
+    "mistralai/Mistral-7B-Instruct-v0.2"
+    "Qwen/Qwen2-7B-Instruct"
+    "StabilityAI/StableLM-Zephyr-3B"
+)
 
-cmd="sbatch"
+# 2. 设置要为其生成数据的数据集和子集
+# 需要为 mmlu(test, val) 和 gsm8k(train, test) 分别运行
+dataset="mmlu"
+set="test"
 
-model="chavinlo/alpaca-13b"
-${cmd} _generate_candidates.sh "$dataset" "$set" "$model" "$prompt_max_length" "$output_max_length"
+prompt_max_length=1536
+output_max_length=1536
 
-model="eachadea/vicuna-13b-1.1"
-${cmd} _generate_candidates.sh "$dataset" "$set" "$model" "$prompt_max_length" "$output_max_length"
+cmd="bash"
 
-model="databricks/dolly-v2-12b" 
-${cmd} _generate_candidates.sh "$dataset" "$set" "$model" "$prompt_max_length" "$output_max_length"
+# 3. 循环启动任务
+for model in "${models[@]}"; do
+    echo "Starting generation for model: $model"
+    echo "Dataset: $dataset, Set: $set"
+    ${cmd} _generate_candidates.sh "$dataset" "$set" "$model" "$prompt_max_length" "$output_max_length"
+done
 
-model="stabilityai/stablelm-tuned-alpha-7b" 
-${cmd} _generate_candidates.sh "$dataset" "$set" "$model" "$prompt_max_length" "$output_max_length" 
-
-model="OpenAssistant/oasst-sft-4-pythia-12b-epoch-3.5"
-${cmd} _generate_candidates.sh "$dataset" "$set" "$model" "$prompt_max_length" "$output_max_length"
-
-model="TheBloke/koala-13B-HF" 
-${cmd} _generate_candidates.sh "$dataset" "$set" "$model" "$prompt_max_length" "$output_max_length"
-
-model="project-baize/baize-v2-13b"
-${cmd} _generate_candidates.sh "$dataset" "$set" "$model" "$prompt_max_length" "$output_max_length"
-
-model="google/flan-t5-xxl"
-${cmd} _generate_candidates.sh "$dataset" "$set" "$model" "$prompt_max_length" "$output_max_length"
-
-model="THUDM/chatglm-6b"
-${cmd} _generate_candidates.sh "$dataset" "$set" "$model" "$prompt_max_length" "$output_max_length"
-
-model="fnlp/moss-moon-003-sft"
-${cmd} _generate_candidates.sh "$dataset" "$set" "$model" "$prompt_max_length" "$output_max_length"
-
-model="mosaicml/mpt-7b-chat"
-${cmd} _generate_candidates.sh "$dataset" "$set" "$model" "$prompt_max_length" "$output_max_length"
-
-model="TheBloke/guanaco-13B-HF"
-${cmd} _generate_candidates.sh "$dataset" "$set" "$model" "$prompt_max_length" "$output_max_length"
-
-model="NousResearch/Nous-Hermes-13b"
-${cmd} _generate_candidates.sh "$dataset" "$set" "$model" "$prompt_max_length" "$output_max_length"
-
-model="ehartford/WizardLM-13B-Uncensored"
-${cmd} _generate_candidates.sh "$dataset" "$set" "$model" "$prompt_max_length" "$output_max_length"
-
-model="jondurbin/airoboros-13b"
-${cmd} _generate_candidates.sh "$dataset" "$set" "$model" "$prompt_max_length" "$output_max_length"
+echo "All generation tasks for $dataset $set submitted."

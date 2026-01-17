@@ -1,12 +1,3 @@
-#!/bin/bash
-#SBATCH --time=12:00:00
-#SBATCH --job-name=generate_candidates
-#SBATCH --output ../../jobs/%j.out
-#SBATCH --gres=gpu:a6000:1
-#SBATCH --qos=normal
-#SBATCH -n 1
-
-nvidia-smi
 # candidates will be saved in ../../data/${dataset}/candidates/${decoding_method}/${model}.json
 dataset=$1
 set=$2
@@ -17,13 +8,13 @@ start_idx=$6
 end_idx=$7
 data_dor="../../data"
 dtype="float16"
-decoding_method="top_p_sampling"
+decoding_method="beam_search"
 num_candidates=1
 num_beams=$num_candidates
 num_beam_groups=$num_candidates
 overwrite=False
-inference_bs=3
-temperature=0.7
+inference_bs=4
+temperature=1.0
 no_repeat_ngram_size=0
 repetition_penalty=1.0
 top_p=1.0
@@ -46,7 +37,7 @@ else
     echo "start_idx: $start_idx"
     echo "end_idx: $end_idx"
 fi
-/home/dongfu/.conda/envs/llm_reranker/bin/python generate_candidates.py \
+python generate_candidates.py \
     --model $model \
     --data_dir $data_dor \
     --dataset $dataset \

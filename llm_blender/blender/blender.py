@@ -8,6 +8,7 @@ import importlib
 import transformers
 from typing import List, Union
 from pathlib import Path
+from torch.utils.data import Dataset
 from .blender_utils import (
     load_ranker, 
     load_other_ranker,
@@ -36,6 +37,48 @@ try:
 except ImportError:
     is_vllm_imported = False
 
+class CustomFusionDataset(Dataset):
+    def __init__(self, inputs, candidates, tokenizer, instructions=None, max_length=512):
+        self.inputs = inputs
+        self.candidates = candidates
+        self.tokenizer = tokenizer
+        self.instructions = instructions
+        self.max_length = max_length
+
+    def __len__(self):
+        return len(self.inputs)
+
+    def __getitem__(self, i):
+        # 1. 获取 Prompt (处理 Instruction)
+        prompt = self.inputs[i]
+        if self.instructions is not None and self.instructions[i]:
+            prompt = self.instructions[i] + "\n" + prompt
+            
+        cands = self.candidates[i]
+        
+        # 2. 【关键修改】应用您的拼接逻辑
+        # 逻辑来源：您的 inference/pipeline.py -> _build_fusion_prompt
+        cand_texts = []
+        for rank, text in enumerate(cands):
+            cand_texts.append(f"[Candidate {rank+1}]: {text}")
+        
+        fusion_input = f"Question: {prompt}\n\n"
+        fusion_input += "\n\n".join(cand_texts)
+        fusion_input += "\n\nGiven the above candidates, generate the best response:"
+        
+        # 3. Tokenize
+        inputs = self.tokenizer(
+            fusion_input,
+            truncation=True,
+            max_length=self.max_length,
+            padding="max_length", # 先填充到最大长度，后续DataLoader会自动处理
+            return_tensors="pt"
+        )
+        
+        return {
+            "input_ids": inputs.input_ids.squeeze(0),
+            "attention_mask": inputs.attention_mask.squeeze(0)
+        }
 
 class Blender:
     def __init__(
@@ -630,9 +673,17 @@ class Blender:
             return None
         generate_kwargs = generate_kwargs.copy()
         candidate_maxlength = generate_kwargs.pop("candidate_max_length", None) or self.fuser_config.candidate_maxlength
-        dataset = GenFuserDataset(inputs, candidates, self.fuser_tokenizer,
-            instructions=instructions, max_length=self.fuser_config.max_length, 
-            candidate_maxlength=candidate_maxlength)
+        # dataset = GenFuserDataset(inputs, candidates, self.fuser_tokenizer,
+        #     instructions=instructions, max_length=self.fuser_config.max_length, 
+        #     candidate_maxlength=candidate_maxlength)
+        
+        dataset = CustomFusionDataset(
+            inputs=inputs, 
+            candidates=candidates, 
+            tokenizer=self.fuser_tokenizer,
+            instructions=instructions, 
+            max_length=self.fuser_config.max_length
+        )
 
         dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
         generate_params = {

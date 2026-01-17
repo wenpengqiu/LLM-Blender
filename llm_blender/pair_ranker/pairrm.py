@@ -7,7 +7,7 @@ from transformers.models.deberta_v2.modeling_deberta_v2 import (
     SequenceClassifierOutput
 )
 from typing import Optional, Tuple, Union
-    
+
 class DebertaV2PairRM(DebertaV2PreTrainedModel):
     def __init__(self, config):
         super().__init__(config)

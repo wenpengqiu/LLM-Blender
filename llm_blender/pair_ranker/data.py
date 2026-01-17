@@ -22,7 +22,7 @@ class Dataset(torch.utils.data.Dataset):
     def __getitem__(self, index):
         item = self.data[index]
         target = item['output'] if 'output' in item else None
-        source = item['instruction'] + item['input']
+        source = item['source']
         if isinstance(target, list):
             target = target[0]
         if "candidates" in item:

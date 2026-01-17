@@ -151,9 +151,9 @@ def main(args):
         seed=args.seed,
         local_rank=args.local_rank,
         fp16=args.fp16,
-        deepspeed=args.deepspeed, #
+        deepspeed=args.deepspeed,
         label_names=args.label_names,
-        evaluation_strategy=args.evaluation_strategy,
+        eval_strategy=args.evaluation_strategy,
         save_strategy=args.save_strategy,
         adafactor=args.adafactor,
         eval_steps=args.eval_steps,
@@ -342,7 +342,8 @@ if __name__ == "__main__":
     # set up default output dir
     if args.output_dir is None:
         args.output_dir = f"outputs/{args.ranker_type}/{args.model_name}/{args.run_name}"
-    args.cache_dir = "./hf_models/" + args.model_name.split('/')[-1] + "/"
+    if args.cache_dir is None:
+        args.cache_dir = "./hf_models/" + args.model_name.split('/')[-1] + "/"
     args.label_names = ["scores"]
     args.candidate_decoding_methods = args.candidate_decoding_method.split(',') if args.candidate_decoding_method is not None else None
     args.candidate_models = args.candidate_model.split(',') if args.candidate_model is not None else None

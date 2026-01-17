@@ -4,16 +4,15 @@ from transformers import (
     AutoModelForCausalLM,
     AutoModel,  
 )
-import torch
 
-decoder_only_models = ["alpaca", "llama", "vicuna", "dolly", "oasst", "stablelm", "koala", "baize", "moss", "opt", "mpt", "guanaco", "hermes", "wizardlm", "airoboros"]
+decoder_only_models = ["alpaca", "llama", "vicuna", "dolly", "oasst", "koala", "baize", "moss", "opt", "mpt", "guanaco", "hermes", "wizardlm", "airoboros", "falcon", "qwen", "mistral", "deepseek", "stablelm"]
 non_conv_models = ["flan-t5"] # models that do not use fastchat conv template
 def build_model(model_name, **kwargs):
     """
         Build the model from the model name
     """
     if any([x in model_name.lower() for x in decoder_only_models]):
-        model = AutoModelForCausalLM.from_pretrained(model_name, **kwargs)
+        model = AutoModelForCausalLM.from_pretrained(model_name, trust_remote_code=True, **kwargs)
     elif "chatglm" in model_name.lower():
         model = AutoModel.from_pretrained(model_name, **kwargs)
     else:
@@ -31,11 +30,10 @@ def build_tokenizer(model_name, **kwargs):
             tokenizer = AutoTokenizer.from_pretrained("huggyllama/llama-7b", padding_side="left", **kwargs)
             tokenizer.name_or_path = model_name
         else:
-            tokenizer = AutoTokenizer.from_pretrained(model_name, padding_side="left", **kwargs)
+            tokenizer = AutoTokenizer.from_pretrained(model_name, padding_side="left", trust_remote_code=True, **kwargs)
     else:
-        tokenizer = AutoTokenizer.from_pretrained(model_name, **kwargs)
+        tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True, **kwargs)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
         tokenizer.pad_token_id = tokenizer.eos_token_id
     return tokenizer
-
